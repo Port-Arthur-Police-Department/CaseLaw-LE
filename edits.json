@@ -1,3 +1,14 @@
 {
-  "edits": []
+  "edits": [
+    {
+      "id": "res-gestae",
+      "title": "Res Gestae (Doctrine)",
+      "citation": "Hearsay Exception",
+      "summary": "Res Gestae is an exception to the hearsay rule. Generally, overheard statements are not allowed into evidence at trial — the person who made the statement must testify. Res Gestae, like a confession, is allowed under certain circumstances. A Res Gestae statement is spontaneous — like blurting out words after an incident or in response to a general question, not as a result of meditation. Example: a person in a crowd shouts \"That man running in the red shirt just robbed the bank!\" or \"I shot him!\"",
+      "impact": "Officers may document spontaneous statements made by witnesses or suspects in the heat of the moment, as they may be admissible under the Res Gestae exception. If an officer is questioning a specific person about a particular incident, the response is not Res Gestae and is governed by rules of oral/written statements or confessions.",
+      "source": "Common Law Doctrine — Hearsay Exception",
+      "category": "4th Amendment & Evidence Rules",
+      "action": "update"
+    }
+  ]
 }
