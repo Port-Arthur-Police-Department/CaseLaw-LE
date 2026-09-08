@@ -450,6 +450,59 @@ TEMPLATE = '''<!DOCTYPE html>
 </html>
 '''
 
+def slugify(text):
+    """Turn a case title into a lower-case dash-separated id."""
+    import unicodedata
+    text = unicodedata.normalize('NFKD', text or '').encode('ascii', 'ignore').decode('ascii')
+    text = text.lower().replace('&', ' and ')
+    text = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+    return text[:60]
+
+def load_approved_submissions():
+    """Merge cases approved via admin.html (submissions.json) into case_data/categories."""
+    path = "submissions.json"
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Could not read {path}: {e}")
+        return
+
+    approved = data.get("approved", [])
+    if not approved:
+        return
+
+    existing_ids = {c["id"] for c in case_data}
+    added = 0
+    for case in approved:
+        cid = case.get("id") or slugify(case.get("title", ""))
+        if not cid or cid in existing_ids:
+            continue
+        case_data.append({
+            "id": cid,
+            "title": case.get("title", ""),
+            "citation": case.get("citation", ""),
+            "summary": case.get("summary", ""),
+            "impact": case.get("impact", ""),
+            "source": case.get("source", ""),
+        })
+        existing_ids.add(cid)
+        added += 1
+
+        # add the case to its chosen category (create the category if missing)
+        cat_name = (case.get("category") or "").strip()
+        if cat_name:
+            cat = next((c for c in categories_config if c["name"] == cat_name), None)
+            if cat is None:
+                categories_config.append({"name": cat_name, "icon": "📌", "cases": [cid]})
+            elif cid not in cat["cases"]:
+                cat["cases"].append(cid)
+
+    if added:
+        print(f"✅ Merged {added} approved submission(s) from submissions.json")
+
 def generate_case_files():
     os.makedirs("cases", exist_ok=True)
     for case in case_data:
@@ -508,9 +561,42 @@ def update_index_categories():
             f.write(content)
         print("✅ Updated categories (sorted) and caseMeta in index.html")
 
+def update_caselaw_data():
+    """Regenerate the inline caseData array in caselaw.html so approved cases appear there too."""
+    caselaw_path = "caselaw.html"
+    if not os.path.exists(caselaw_path):
+        print("⚠️ caselaw.html not found – skipping update.")
+        return
+
+    with open(caselaw_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    lines = []
+    for case in case_data:
+        obj = {
+            "id": case["id"],
+            "title": case["title"],
+            "citation": case["citation"],
+            "summary": case["summary"],
+            "impact": case["impact"],
+            "source": case["source"],
+        }
+        lines.append("                " + json.dumps(obj, ensure_ascii=False))
+    new_data_js = "const caseData = [\n" + ",\n".join(lines) + "\n            ];"
+    new_content = re.sub(r'const caseData = \[.*?\];', new_data_js, content, flags=re.DOTALL)
+
+    if new_content == content:
+        print("⚠️ No change made to caselaw.html.")
+    else:
+        with open(caselaw_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        print("✅ Updated caseData in caselaw.html")
+
 def main():
+    load_approved_submissions()
     generate_case_files()
     update_index_categories()
+    update_caselaw_data()
     print("\n🎉 All done!")
 
 if __name__ == "__main__":

@@ -437,9 +437,13 @@
 
             grid.innerHTML = html;
 
-            // ─── FORM SUBMISSION (Formspree + localStorage) ──────
+            // ─── FORM SUBMISSION (GitHub Issues + localStorage) ────
             const form = document.getElementById('submitForm');
             const status = document.getElementById('formStatus');
+
+            const GH_OWNER = 'Port-Arthur-Police-Department';
+            const GH_REPO = 'CaseLaw-LE';
+            const GH_TOKEN_KEY = 'gh_admin_token';
 
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -471,29 +475,52 @@
                 };
 
                 try {
-                    // ── 1. Send to Formspree ──
-                    const response = await fetch('https://formspree.io/f/xykrnkaq', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    });
+                    // ── 1. Always save to localStorage as a local backup ──
+                    let submissions = JSON.parse(localStorage.getItem('caseLawSubmissions') || '[]');
+                    submissions.push(data);
+                    localStorage.setItem('caseLawSubmissions', JSON.stringify(submissions));
 
-                    if (response.ok) {
-                        // ── 2. Success – also save to localStorage as backup ──
-                        let submissions = JSON.parse(localStorage.getItem('caseLawSubmissions') || '[]');
-                        submissions.push(data);
-                        localStorage.setItem('caseLawSubmissions', JSON.stringify(submissions));
+                    // ── 2. If an admin token is active, create a GitHub Issue ──
+                    const token = sessionStorage.getItem(GH_TOKEN_KEY);
+                    let sentToReview = false;
+                    if (token) {
+                        const body = [
+                            '**Case Name:** ' + caseName,
+                            '**Final Court:** ' + (finalCourt || 'Not provided'),
+                            '**Outcome / Ruling:** ' + outcome,
+                            '**Source / Citation:** ' + (source || 'Not provided')
+                        ].join('\n');
 
-                        status.className = 'form-status success';
-                        status.textContent = '✅ Thank you! Your case suggestion has been submitted successfully. We will review it shortly.';
-                        form.reset();
-                    } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Formspree submission failed.');
+                        const response = await fetch('https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/issues', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Authorization': 'token ' + token
+                            },
+                            body: JSON.stringify({
+                                title: caseName,
+                                body: body,
+                                labels: ['case-submission', 'status: pending']
+                            })
+                        });
+
+                        if (response.ok) {
+                            sentToReview = true;
+                        } else {
+                            // Issue creation failed (e.g. expired token) – local backup already saved
+                            console.warn('Could not create GitHub issue:', response.status);
+                        }
                     }
+
+                    if (sentToReview) {
+                        status.className = 'form-status success';
+                        status.textContent = '✅ Thank you! Your case suggestion has been submitted for review by an administrator.';
+                    } else {
+                        status.className = 'form-status success';
+                        status.textContent = '✅ Your suggestion has been saved and will be reviewed by an administrator.';
+                    }
+                    form.reset();
                 } catch (error) {
                     console.error('Submission error:', error);
                     status.className = 'form-status error';

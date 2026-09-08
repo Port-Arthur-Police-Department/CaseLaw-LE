@@ -1,12 +1,15 @@
 // ─── CACHE VERSION ──────────────────────────────────────────────
-const CACHE_NAME = 'case-law-v2';
+const CACHE_NAME = 'case-law-v3';
 const urlsToCache = [
   // ── Root / core files ──
   '.',
   'index.html',
+  'caselaw.html',
+  'admin.html',
   'manifest.json',
+  'submissions.json',
 
-  // ── All 21 case files ──
+  // ── All case files ──
   'cases/terry-v-ohio.html',
   'cases/chimel-v-california.html',
   'cases/arizona-v-gant.html',
@@ -27,6 +30,10 @@ const urlsToCache = [
   'cases/mincey-v-arizona.html',
   'cases/cady-v-dombrowski.html',
   'cases/brown-v-texas.html',
+  'cases/schneckloth-v-bustamonte.html',
+  'cases/united-states-v-brignoni-ponce.html',
+  'cases/collins-v-virginia.html',
+  'cases/case-v-montana.html',
   'cases/res-gestae.html'
 ];
 

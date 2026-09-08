@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin – Case Submissions</title>
+    <link rel="icon" href="department-badge.png" type="image/png">
+    <meta name="theme-color" content="#1a3a6e">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        header {
+            background-color: #1a3a6e;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 5px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        header h1 { font-size: 22px; }
+        header .subtitle { font-size: 14px; opacity: 0.9; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            color: #1a3a6e;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .back-link::before { content: '← '; }
+
+        .card {
+            background: white;
+            border-radius: 5px;
+            padding: 22px 26px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            border-left: 5px solid #1a3a6e;
+        }
+        .card h2 { color: #1a3a6e; font-size: 18px; margin-bottom: 8px; }
+        .muted { color: #666; font-size: 14px; }
+        .warning { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 10px 14px; border-radius: 4px; font-size: 14px; margin-bottom: 16px; }
+
+        /* token login */
+        .token-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .token-row input {
+            flex: 1; min-width: 260px; padding: 10px 12px;
+            border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 15px;
+        }
+        .token-row input:focus { outline: none; border-color: #1a3a6e; box-shadow: 0 0 0 3px rgba(26,58,110,0.12); }
+
+        .btn {
+            background-color: #1a3a6e; color: white; border: none; cursor: pointer;
+            padding: 9px 18px; border-radius: 4px; font-size: 14px; font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #0e2a52; }
+        .btn:disabled { background: #a8b3c6; cursor: not-allowed; }
+        .btn.green { background-color: #1e7e34; }
+        .btn.green:hover { background-color: #16602a; }
+        .btn.red { background-color: #c0392b; }
+        .btn.red:hover { background-color: #96281b; }
+        .btn.gray { background-color: #6c757d; }
+        .btn.gray:hover { background-color: #545b62; }
+        .btn.small { padding: 5px 12px; font-size: 13px; }
+
+        .status { margin-top: 12px; padding: 10px 14px; border-radius: 4px; display: none; font-weight: 500; font-size: 14px; }
+        .status.success { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { display: block; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { display: block; background: #e9f0fd; color: #1a3a6e; border: 1px solid #c8d6ef; }
+
+        /* issue cards */
+        .issue {
+            background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            margin-bottom: 16px; overflow: hidden; border-left: 5px solid #d4a017;
+        }
+        .issue-head {
+            padding: 14px 18px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center;
+            background: #fffdf5; border-bottom: 1px solid #f0e6c8; cursor: pointer;
+        }
+        .issue-head h3 { color: #1a3a6e; font-size: 17px; }
+        .issue-head .meta { font-size: 13px; color: #888; }
+        .issue-body { padding: 16px 18px; display: none; }
+        .issue.open .issue-body { display: block; }
+        .issue.open .issue-head { background: #fdf8e8; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-weight: 600; color: #1a3a6e; font-size: 14px; margin-bottom: 4px; }
+        .field input, .field textarea, .field select {
+            width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px;
+        }
+        .field textarea { resize: vertical; min-height: 60px; }
+        .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #1a3a6e; }
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .readonly { background: #f5f5f5; padding: 8px 10px; border-radius: 4px; font-size: 14px; white-space: pre-wrap; }
+
+        .empty { text-align: center; padding: 30px 16px; color: #888; font-size: 16px; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+        .badge.pending { background: #fff3cd; color: #856404; }
+        .badge.approved { background: #d4edda; color: #155724; }
+        .badge.rejected { background: #f8d7da; color: #721c24; }
+
+        .section-title { font-size: 20px; color: #1a3a6e; margin: 26px 0 12px; display: flex; align-items: center; gap: 10px; }
+        .section-title .count { font-size: 13px; color: #666; background: #dce3ef; padding: 0 10px; border-radius: 12px; }
+
+        footer { margin-top: 30px; text-align: center; font-size: 13px; color: #777; padding: 14px 0; border-top: 1px solid #e0e0e0; }
+
+        @media (max-width: 700px) {
+            .row2 { grid-template-columns: 1fr; }
+            body { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">Back to Resources</a>
+
+    <header>
+        <div>
+            <h1>🔐 Admin – Case Submissions</h1>
+            <div class="subtitle">Review and approve case suggestions before they publish</div>
+        </div>
+        <button id="logoutBtn" class="btn gray" style="display:none;">Log out</button>
+    </header>
+
+    <!-- ─── TOKEN LOGIN ─── -->
+    <div class="card" id="loginCard">
+        <h2>Step 1 · Enter your GitHub token</h2>
+        <p class="muted" style="margin-bottom:12px;">
+            Create a <strong>fine-grained Personal Access Token</strong> on GitHub with
+            <em>Issues: Read/Write</em> and <em>Contents: Read/Write</em> for this repository.
+            The token is used only in this browser session and is never saved to the site.
+        </p>
+        <div class="token-row">
+            <input type="password" id="tokenInput" placeholder="github_pat_…" autocomplete="off" />
+            <button id="loginBtn" class="btn">Sign in</button>
+        </div>
+        <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div class="warning" id="sessionWarn" style="display:none;">
+        Token stored for this browser session only. Close the browser to clear it.
+    </div>
+
+    <!-- ─── PENDING QUEUE ─── -->
+    <h2 class="section-title">📥 Pending submissions from GitHub <span class="count" id="pendingCount">0</span></h2>
+    <div id="pendingContainer">
+        <div class="empty">Sign in to load pending submissions.</div>
+    </div>
+
+    <!-- ─── LOCAL QUEUE ─── -->
+    <h2 class="section-title">💾 Local submissions (this browser) <span class="count" id="localCount">0</span></h2>
+    <p class="muted" style="margin-bottom:12px;">
+        Submissions saved without an active token land here. Review them and send to GitHub, or approve directly.
+    </p>
+    <div id="localContainer">
+        <div class="empty">No local submissions.</div>
+    </div>
+
+    <footer>&copy; 2025 Port Arthur Police Department · Admin console</footer>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── CONFIG ──────────────────────────────────────────────
+            const OWNER = 'Port-Arthur-Police-Department';
+            const REPO = 'CaseLaw-LE';
+            const API = 'https://api.github.com';
+            const TOKEN_KEY = 'gh_admin_token';
+            const LOCAL_KEY = 'caseLawSubmissions';
+
+            const CATEGORIES = [
+                'Traffic Stops & Vehicle Searches',
+                'Reasonable Suspicion & Terry Stops',
+                'Search Warrants & Exceptions',
+                'Custody, Miranda & Interrogation',
+                '4th Amendment & Evidence Rules'
+            ];
+
+            // ─── HELPERS ────────────────────────────────────────────
+            const $ = id => document.getElementById(id);
+
+            function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
+            function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t); }
+            function clearToken() { sessionStorage.removeItem(TOKEN_KEY); }
+
+            async function api(path, options = {}) {
+                const headers = Object.assign(
+                    { 'Accept': 'application/vnd.github.v3+json' },
+                    options.headers || {}
+                );
+                const token = getToken();
+                if (token) headers['Authorization'] = 'token ' + token;
+                const res = await fetch(API + path, Object.assign({}, options, { headers }));
+                let body = null;
+                try { body = await res.json(); } catch (e) { /* no body */ }
+                if (!res.ok) {
+                    const msg = (body && (body.message || body.error)) || ('HTTP ' + res.status);
+                    const err = new Error(msg);
+                    err.status = res.status;
+                    throw err;
+                }
+                return body;
+            }
+
+            function setStatus(el, text, type) {
+                el.className = 'status ' + (type || 'info');
+                el.textContent = text;
+            }
+
+            // slugify a case title into an id
+            function slugify(title) {
+                return String(title || '')
+                    .toLowerCase()
+                    .replace(/&/g, ' and ')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '')
+                    .slice(0, 60);
+            }
+
+            // ─── AUTH ───────────────────────────────────────────────
+            $('loginBtn').addEventListener('click', async function() {
+                const token = $('tokenInput').value.trim();
+                if (!token) { setStatus($('loginStatus'), 'Please enter a token.', 'error'); return; }
+                setStatus($('loginStatus'), 'Verifying token…', 'info');
+                this.disabled = true;
+                try {
+                    // Validate with a lightweight authenticated call
+                    const before = getToken();
+                    setToken(token);
+                    const user = await api('/user');
+                    setToken(token);
+                    setStatus($('loginStatus'), '✅ Signed in as ' + (user.login || 'GitHub user') + '.', 'success');
+                    $('loginCard').style.display = 'none';
+                    $('sessionWarn').style.display = 'block';
+                    $('logoutBtn').style.display = 'inline-block';
+                    loadAll();
+                } catch (e) {
+                    if (getToken() !== before) clearToken();
+                    setStatus($('loginStatus'), '❌ Invalid token: ' + e.message, 'error');
+                } finally {
+                    this.disabled = false;
+                }
+            });
+
+            $('logoutBtn').addEventListener('click', function() {
+                clearToken();
+                $('loginCard').style.display = 'block';
+                $('sessionWarn').style.display = 'none';
+                $('logoutBtn').style.display = 'none';
+                $('pendingContainer').innerHTML = '<div class="empty">Sign in to load pending submissions.</div>';
+                loadLocal();
+            });
+
+            // ─── LOAD ALL ───────────────────────────────────────────
+            async function loadAll() {
+                await Promise.all([loadPending(), loadLocal()]);
+            }
+
+            // ─── PENDING ISSUES ─────────────────────────────────────
+            async function loadPending() {
+                const container = $('pendingContainer');
+                if (!getToken()) return;
+                container.innerHTML = '<div class="empty">Loading…</div>';
+                try {
+                    const issues = await api(
+                        '/repos/' + OWNER + '/' + REPO + '/issues?state=open&labels=case-submission,status%3Apending&per_page=100'
+                    );
+                    const pend = issues.filter(i => !i.pull_request);
+                    $('pendingCount').textContent = pend.length;
+                    if (pend.length === 0) {
+                        container.innerHTML = '<div class="empty">No pending submissions. 🎉</div>';
+                        return;
+                    }
+                    container.innerHTML = '';
+                    pend.forEach(issue => container.appendChild(renderIssueCard(issue)));
+                } catch (e) {
+                    container.innerHTML = '<div class="empty">⚠️ Could not load submissions: ' + e.message + '</div>';
+                }
+            }
+
+            function parseBody(body) {
+                const out = { caseName: '', finalCourt: '', outcome: '', source: '' };
+                if (!body) return out;
+                body.split(/\r?\n/).forEach(line => {
+                    const m = line.match(/^\*\*(.+?):\*\*\s*(.*)$/);
+                    if (!m) return;
+                    const key = m[1].toLowerCase();
+                    const val = m[2].trim();
+                    if (key.includes('case name')) out.caseName = val;
+                    else if (key.includes('final court')) out.finalCourt = val;
+                    else if (key.includes('outcome')) out.outcome = val;
+                    else if (key.includes('source')) out.source = val;
+                });
+                return out;
+            }
+
+            function renderIssueCard(issue) {
+                const d = parseBody(issue.body);
+                const el = document.createElement('div');
+                el.className = 'issue';
+                el.innerHTML = `
+                    <div class="issue-head">
+                        <div>
+                            <h3>${escapeHtml(d.caseName || issue.title)}</h3>
+                            <div class="meta">#${issue.number} · by ${escapeHtml(issue.user.login)} · ${new Date(issue.created_at).toLocaleString()}</div>
+                        </div>
+                        <span class="badge pending">PENDING</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="field"><label>Case Name *</label><input type="text" data-f="caseName" value="${escapeAttr(d.caseName)}"></div>
+                        <div class="row2">
+                            <div class="field"><label>Final Court</label><input type="text" data-f="finalCourt" value="${escapeAttr(d.finalCourt)}"></div>
+                            <div class="field"><label>Source / Citation</label><input type="text" data-f="source" value="${escapeAttr(d.source)}"></div>
+                        </div>
+                        <div class="field"><label>Outcome / Ruling *</label><textarea data-f="outcome">${escapeHtml(d.outcome)}</textarea></div>
+                        <div class="field"><label>Category</label>
+                            <select data-f="category">
+                                ${CATEGORIES.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('')}
+                                <option value="__other__">Other…</option>
+                            </select>
+                            <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:none;">
+                        </div>
+                        <div class="actions">
+                            <button class="btn green" data-act="approve">✔ Approve &amp; publish</button>
+                            <button class="btn red" data-act="reject">✖ Reject</button>
+                            <button class="btn gray" data-act="delete">🗑 Delete</button>
+                        </div>
+                        <div class="status" data-status></div>
+                    </div>
+                `;
+                // toggle open
+                el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
+                // category other toggle
+                const sel = el.querySelector('[data-f="category"]');
+                const otherInput = el.querySelector('[data-f="categoryOther"]');
+                sel.addEventListener('change', () => { otherInput.style.display = sel.value === '__other__' ? 'block' : 'none'; });
+
+                const statusEl = el.querySelector('[data-status]');
+                el.querySelector('[data-act="approve"]').addEventListener('click', () => approveIssue(issue, el, statusEl));
+                el.querySelector('[data-act="reject"]').addEventListener('click', () => rejectIssue(issue, el, statusEl));
+                el.querySelector('[data-act="delete"]').addEventListener('click', () => deleteIssue(issue, el, statusEl));
+                return el;
+            }
+
+            function collectFields(el) {
+                const f = {};
+                el.querySelectorAll('[data-f]').forEach(inp => { f[inp.dataset.f] = inp.value.trim(); });
+                if (f.category === '__other__') f.category = f.categoryOther || '';
+                delete f.categoryOther;
+                return f;
+            }
+
+            // ─── APPROVE ────────────────────────────────────────────
+            async function approveIssue(issue, cardEl, statusEl) {
+                const f = collectFields(cardEl);
+                if (!f.caseName || !f.outcome) {
+                    setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return;
+                }
+                if (!f.category) {
+                    setStatus(statusEl, 'Please choose a category.', 'error'); return;
+                }
+                setStatus(statusEl, 'Approving and publishing…', 'info');
+                const btn = cardEl.querySelector('[data-act="approve"]');
+                btn.disabled = true;
+                try {
+                    await appendApprovedCase({
+                        title: f.caseName,
+                        citation: f.source || 'Not provided',
+                        summary: f.outcome,
+                        impact: f.outcome,
+                        source: f.source || 'Not provided',
+                        category: f.category
+                    });
+                    // mark issue approved
+                    await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ labels: ['case-submission', 'status: approved'] })
+                    });
+                    setStatus(statusEl, '✅ Approved. The site is regenerating (GitHub Actions).', 'success');
+                    setTimeout(() => { cardEl.remove(); loadPending(); }, 2500);
+                } catch (e) {
+                    setStatus(statusEl, '❌ ' + e.message, 'error');
+                    btn.disabled = false;
+                }
+            }
+
+            // base64 (UTF-8 safe) helpers for reading/writing file content
+            function b64ToUtf8(b64) {
+                const bytes = Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0));
+                return new TextDecoder().decode(bytes);
+            }
+            function utf8ToB64(str) {
+                const bytes = new TextEncoder().encode(str);
+                let bin = '';
+                const chunk = 0x8000;
+                for (let i = 0; i < bytes.length; i += chunk) {
+                    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+                }
+                return btoa(bin);
+            }
+
+            // Append a case to submissions.json via the Contents API
+            async function appendApprovedCase(caseObj) {
+                const path = 'submissions.json';
+                const existing = await api('/repos/' + OWNER + '/' + REPO + '/contents/' + path);
+                const content = JSON.parse(b64ToUtf8(existing.content));
+                content.approved = content.approved || [];
+                // dedupe by id
+                const id = slugify(caseObj.title);
+                if (!content.approved.some(c => slugify(c.title) === id)) {
+                    content.approved.push(Object.assign({ id: id }, caseObj));
+                }
+                await api('/repos/' + OWNER + '/' + REPO + '/contents/' + path, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        message: 'Add approved case: ' + caseObj.title,
+                        content: utf8ToB64(JSON.stringify(content, null, 2)),
+                        sha: existing.sha
+                    })
+                });
+            }
+
+            // ─── REJECT ─────────────────────────────────────────────
+            async function rejectIssue(issue, cardEl, statusEl) {
+                setStatus(statusEl, 'Rejecting…', 'info');
+                const btn = cardEl.querySelector('[data-act="reject"]');
+                btn.disabled = true;
+                try {
+                    await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ labels: ['case-submission', 'status: rejected'] })
+                    });
+                    await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number + '/comments', {
+                        method: 'POST',
+                        body: JSON.stringify({ body: '❌ This submission was not approved and has been closed by an administrator.' })
+                    });
+                    setStatus(statusEl, 'Rejected. Closing…', 'success');
+                    setTimeout(() => { cardEl.remove(); loadPending(); }, 1500);
+                } catch (e) {
+                    setStatus(statusEl, '❌ ' + e.message, 'error');
+                    btn.disabled = false;
+                }
+            }
+
+            // ─── DELETE ─────────────────────────────────────────────
+            async function deleteIssue(issue, cardEl, statusEl) {
+                if (!confirm('Delete issue #' + issue.number + ' entirely? This cannot be undone.')) return;
+                setStatus(statusEl, 'Deleting…', 'info');
+                const btn = cardEl.querySelector('[data-act="delete"]');
+                btn.disabled = true;
+                try {
+                    await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ state: 'closed' })
+                    });
+                    setStatus(statusEl, 'Closed and removed.', 'success');
+                    setTimeout(() => { cardEl.remove(); loadPending(); }, 1200);
+                } catch (e) {
+                    setStatus(statusEl, '❌ ' + e.message, 'error');
+                    btn.disabled = false;
+                }
+            }
+
+            // ─── LOCAL QUEUE ────────────────────────────────────────
+            function loadLocal() {
+                const container = $('localContainer');
+                let subs = [];
+                try { subs = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); } catch (e) { subs = []; }
+                $('localCount').textContent = subs.length;
+                if (subs.length === 0) {
+                    container.innerHTML = '<div class="empty">No local submissions.</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                subs.forEach((sub, i) => container.appendChild(renderLocalCard(sub, i)));
+            }
+
+            function renderLocalCard(sub, index) {
+                const el = document.createElement('div');
+                el.className = 'issue';
+                el.innerHTML = `
+                    <div class="issue-head">
+                        <div>
+                            <h3>${escapeHtml(sub.caseName)}</h3>
+                            <div class="meta">${sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : 'saved locally'}</div>
+                        </div>
+                        <span class="badge pending">LOCAL</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="field"><label>Case Name</label><input type="text" data-f="caseName" value="${escapeAttr(sub.caseName)}"></div>
+                        <div class="row2">
+                            <div class="field"><label>Final Court</label><input type="text" data-f="finalCourt" value="${escapeAttr(sub.finalCourt)}"></div>
+                            <div class="field"><label>Source / Citation</label><input type="text" data-f="source" value="${escapeAttr(sub.source)}"></div>
+                        </div>
+                        <div class="field"><label>Outcome / Ruling</label><textarea data-f="outcome">${escapeHtml(sub.outcome)}</textarea></div>
+                        <div class="field"><label>Category</label>
+                            <select data-f="category">
+                                ${CATEGORIES.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('')}
+                                <option value="__other__">Other…</option>
+                            </select>
+                            <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:none;">
+                        </div>
+                        <div class="actions">
+                            <button class="btn green" data-act="approve">✔ Approve &amp; publish</button>
+                            <button class="btn" data-act="issue">⬆ Send to GitHub</button>
+                            <button class="btn gray" data-act="dismiss">🗑 Dismiss</button>
+                        </div>
+                        <div class="status" data-status></div>
+                    </div>
+                `;
+                el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
+                const sel = el.querySelector('[data-f="category"]');
+                const otherInput = el.querySelector('[data-f="categoryOther"]');
+                sel.addEventListener('change', () => { otherInput.style.display = sel.value === '__other__' ? 'block' : 'none'; });
+
+                const statusEl = el.querySelector('[data-status]');
+                el.querySelector('[data-act="approve"]').addEventListener('click', async () => {
+                    const f = collectFields(el);
+                    if (!f.caseName || !f.outcome) { setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return; }
+                    if (!f.category) { setStatus(statusEl, 'Please choose a category.', 'error'); return; }
+                    if (!getToken()) { setStatus(statusEl, 'Sign in first — approving publishes via GitHub.', 'error'); return; }
+                    try {
+                        await appendApprovedCase({ title: f.caseName, citation: f.source || 'Not provided', summary: f.outcome, impact: f.outcome, source: f.source || 'Not provided', category: f.category });
+                        setStatus(statusEl, '✅ Approved. Site regenerating…', 'success');
+                        setTimeout(() => { el.remove(); removeLocal(index); loadLocal(); }, 1500);
+                    } catch (e) { setStatus(statusEl, '❌ ' + e.message, 'error'); }
+                });
+                el.querySelector('[data-act="issue"]').addEventListener('click', async () => {
+                    const f = collectFields(el);
+                    if (!f.caseName || !f.outcome) { setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return; }
+                    if (!getToken()) { setStatus(statusEl, 'Sign in first.', 'error'); return; }
+                    try {
+                        await createIssue(f);
+                        setStatus(statusEl, '⬆ Sent to GitHub as a pending submission.', 'success');
+                        setTimeout(() => { el.remove(); removeLocal(index); loadLocal(); }, 1500);
+                    } catch (e) { setStatus(statusEl, '❌ ' + e.message, 'error'); }
+                });
+                el.querySelector('[data-act="dismiss"]').addEventListener('click', () => {
+                    if (!confirm('Dismiss this local submission?')) return;
+                    removeLocal(index);
+                    el.remove();
+                    loadLocal();
+                });
+                return el;
+            }
+
+            function removeLocal(index) {
+                let subs = [];
+                try { subs = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); } catch (e) {}
+                subs.splice(index, 1);
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(subs));
+            }
+
+            async function createIssue(f) {
+                const body = [
+                    '**Case Name:** ' + f.caseName,
+                    '**Final Court:** ' + (f.finalCourt || 'Not provided'),
+                    '**Outcome / Ruling:** ' + f.outcome,
+                    '**Source / Citation:** ' + (f.source || 'Not provided')
+                ].join('\n');
+                await api('/repos/' + OWNER + '/' + REPO + '/issues', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: f.caseName,
+                        body: body,
+                        labels: ['case-submission', 'status: pending']
+                    })
+                });
+            }
+
+            // ─── ESCAPING ───────────────────────────────────────────
+            function escapeHtml(s) {
+                return String(s || '').replace(/[&<>"']/g, c => (
+                    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+                ));
+            }
+            function escapeAttr(s) {
+                return escapeHtml(s).replace(/`/g, '&#96;');
+            }
+
+            // ─── INIT ───────────────────────────────────────────────
+            if (getToken()) {
+                $('loginCard').style.display = 'none';
+                $('sessionWarn').style.display = 'block';
+                $('logoutBtn').style.display = 'inline-block';
+                loadAll();
+            } else {
+                loadLocal();
+            }
+        })();
+    </script>
+</body>
+</html>
