@@ -1,12 +1,27 @@
 // ─── CACHE VERSION ──────────────────────────────────────────────
-const CACHE_NAME = 'case-law-v2';
+const CACHE_NAME = 'case-law-v4';
 const urlsToCache = [
   // ── Root / core files ──
   '.',
   'index.html',
-  'manifest.json',
+  'caselaw.html',
+  'admin.html',
+  'submissions.json',
+  'edits.json',
+  'cases.json',
 
-  // ── All 21 case files ──
+  // ── Assets (badges, favicons, PWA manifest) ──
+  'assets/site.webmanifest',
+  'assets/officer-badge.png',
+  'assets/department-badge.png',
+  'assets/favicon.ico',
+  'assets/favicon-16x16.png',
+  'assets/favicon-32x32.png',
+  'assets/apple-touch-icon.png',
+  'assets/android-chrome-192x192.png',
+  'assets/android-chrome-512x512.png',
+
+  // ── All case files ──
   'cases/terry-v-ohio.html',
   'cases/chimel-v-california.html',
   'cases/arizona-v-gant.html',
@@ -27,6 +42,10 @@ const urlsToCache = [
   'cases/mincey-v-arizona.html',
   'cases/cady-v-dombrowski.html',
   'cases/brown-v-texas.html',
+  'cases/schneckloth-v-bustamonte.html',
+  'cases/united-states-v-brignoni-ponce.html',
+  'cases/collins-v-virginia.html',
+  'cases/case-v-montana.html',
   'cases/res-gestae.html'
 ];
 
