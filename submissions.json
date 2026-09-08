@@ -1,13 +1,3 @@
 {
-  "approved": [
-    {
-      "id": "case-v-montana",
-      "title": "Case v Montana",
-      "citation": "https://www.oyez.org/cases/2025/24-624",
-      "summary": "Unanimous decision that the police can enter a home without a warrant and without probable cause of a crime being committed if there is an “objectively reasonable” basis to believe that an occupant is seriously injured or faces serious injury.",
-      "impact": "Unanimous decision that the police can enter a home without a warrant and without probable cause of a crime being committed if there is an “objectively reasonable” basis to believe that an occupant is seriously injured or faces serious injury.",
-      "source": "https://www.oyez.org/cases/2025/24-624",
-      "category": "Search Warrants & Exceptions"
-    }
-  ]
+  "approved": []
 }

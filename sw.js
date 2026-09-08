@@ -8,6 +8,8 @@ const urlsToCache = [
   'admin.html',
   'manifest.json',
   'submissions.json',
+  'edits.json',
+  'cases.json',
 
   // ── All case files ──
   'cases/terry-v-ohio.html',

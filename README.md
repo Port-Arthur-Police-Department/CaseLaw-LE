@@ -12,6 +12,24 @@ The site no longer relies on Formspree. Submissions now flow through **GitHub Is
 3. On each submission the admin can **Edit**, **Approve**, **Reject**, or **Delete**.
 4. **Approve** appends the case to `submissions.json`, which triggers the GitHub Actions workflow to regenerate all case pages and the homepage. The case goes live automatically — no manual HTML editing.
 
+## Flagging a case as inaccurate (public → admin)
+
+Every case page has a **🚩 Flag this case as inaccurate** button and a short legal disclaimer noting that user-submitted content may not be independently verified.
+
+1. A visitor clicks the flag button, types a reason, and submits.
+2. If an admin token is active in that browser session, the flag becomes a GitHub Issue labeled `case-flag` / `status: pending`.
+3. Otherwise it is saved to the browser's `localStorage` (`caseFlags`) and shows up in the admin page's **Local flags** section.
+4. On `admin.html`, the **🚩 Case flags** section lists pending flags. The admin can **✅ Resolve** (marks `status: resolved` and posts a comment) or **🗑 Dismiss** it. Local flags can be **⬆ Send to GitHub** or dismissed.
+
+## Editing or deleting existing cases (admin workflow)
+
+The admin page also has an **✏️ Existing cases** section listing every published case.
+
+1. Open `admin.html` and sign in.
+2. Scroll to **Existing cases** and click a case to expand it.
+3. Edit the **Title, Citation, Source, Category, Summary**, or **Impact on Law Enforcement**, then click **💾 Save edits** — or click **🗑 Delete case** to remove it entirely.
+4. Changes are written to `edits.json`, which triggers the GitHub Actions workflow to regenerate the site (updating the homepage, reference page, and the individual case page). Edits to existing cases are stored as overrides in `edits.json` and applied on top of the base data in `generate_cases.py`.
+
 ### Creating a GitHub token for the admin page
 1. GitHub → Settings → Developer settings → **Personal access tokens → Fine-grained tokens** → *Generate new token*.
 2. Repository access: **Only select repositories** → `Port-Arthur-Police-Department/CaseLaw-LE`.

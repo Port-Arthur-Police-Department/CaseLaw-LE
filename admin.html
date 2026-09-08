@@ -109,6 +109,7 @@
         .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
         .readonly { background: #f5f5f5; padding: 8px 10px; border-radius: 4px; font-size: 14px; white-space: pre-wrap; }
+        .flag-reason { background: #fdf0f0; border-left: 4px solid #dc3545; padding: 10px 12px; border-radius: 4px; font-size: 14px; white-space: pre-wrap; color: #721c24; }
 
         .empty { text-align: center; padding: 30px 16px; color: #888; font-size: 16px; }
         .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-right: 6px; }
@@ -164,6 +165,24 @@
         <div class="empty">Sign in to load pending submissions.</div>
     </div>
 
+    <!-- ─── CASE FLAGS ─── -->
+    <h2 class="section-title">🚩 Case flags <span class="count" id="flagCount">0</span></h2>
+    <p class="muted" style="margin-bottom:12px;">
+        Users flag case pages as inaccurate. Review the reason and either resolve it or push the correction live.
+    </p>
+    <div id="flagContainer">
+        <div class="empty">No case flags.</div>
+    </div>
+
+    <!-- ─── LOCAL FLAGS (this browser) ─── -->
+    <h2 class="section-title">🚩 Local flags (this browser) <span class="count" id="localFlagCount">0</span></h2>
+    <p class="muted" style="margin-bottom:12px;">
+        Flags saved without an active token land here. Send them to GitHub to track them as issues.
+    </p>
+    <div id="localFlagContainer">
+        <div class="empty">No local flags.</div>
+    </div>
+
     <!-- ─── LOCAL QUEUE ─── -->
     <h2 class="section-title">💾 Local submissions (this browser) <span class="count" id="localCount">0</span></h2>
     <p class="muted" style="margin-bottom:12px;">
@@ -171,6 +190,15 @@
     </p>
     <div id="localContainer">
         <div class="empty">No local submissions.</div>
+    </div>
+
+    <!-- ─── EXISTING CASES ─── -->
+    <h2 class="section-title">✏️ Existing cases <span class="count" id="existingCount">0</span></h2>
+    <p class="muted" style="margin-bottom:12px;">
+        Click a case to edit its details or delete it. Changes are published after the site rebuilds.
+    </p>
+    <div id="existingContainer">
+        <div class="empty">Sign in to load existing cases.</div>
     </div>
 
     <footer>&copy; 2025 Port Arthur Police Department · Admin console</footer>
@@ -185,6 +213,8 @@
             const API = 'https://api.github.com';
             const TOKEN_KEY = 'gh_admin_token';
             const LOCAL_KEY = 'caseLawSubmissions';
+            const EDITS_PATH = 'edits.json';
+            const CASES_PATH = 'cases.json';
 
             const CATEGORIES = [
                 'Traffic Stops & Vehicle Searches',
@@ -266,12 +296,90 @@
                 $('sessionWarn').style.display = 'none';
                 $('logoutBtn').style.display = 'none';
                 $('pendingContainer').innerHTML = '<div class="empty">Sign in to load pending submissions.</div>';
+                $('existingContainer').innerHTML = '<div class="empty">Sign in to load existing cases.</div>';
                 loadLocal();
             });
 
             // ─── LOAD ALL ───────────────────────────────────────────
             async function loadAll() {
-                await Promise.all([loadPending(), loadLocal()]);
+                await Promise.all([loadPending(), loadFlags(), loadLocal(), loadLocalFlags(), loadExisting()]);
+            }
+
+            // ─── CASE FLAGS ─────────────────────────────────────────
+            async function loadFlags() {
+                const container = $('flagContainer');
+                if (!getToken()) return;
+                container.innerHTML = '<div class="empty">Loading…</div>';
+                try {
+                    const issues = await api(
+                        '/repos/' + OWNER + '/' + REPO + '/issues?state=open&labels=case-flag,status%3Apending&per_page=100'
+                    );
+                    const flags = issues.filter(i => !i.pull_request);
+                    $('flagCount').textContent = flags.length;
+                    if (flags.length === 0) {
+                        container.innerHTML = '<div class="empty">No case flags. 🎉</div>';
+                        return;
+                    }
+                    container.innerHTML = '';
+                    flags.forEach(issue => container.appendChild(renderFlagCard(issue)));
+                } catch (e) {
+                    container.innerHTML = '<div class="empty">⚠️ Could not load flags: ' + e.message + '</div>';
+                }
+            }
+
+            function renderFlagCard(issue) {
+                const el = document.createElement('div');
+                el.className = 'issue';
+                el.innerHTML = `
+                    <div class="issue-head">
+                        <div>
+                            <h3>${escapeHtml(issue.title)}</h3>
+                            <div class="meta">#${issue.number} · opened ${new Date(issue.created_at).toLocaleString()}</div>
+                        </div>
+                        <span class="badge pending">FLAG</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="flag-reason">${escapeHtml(issue.body || '(no details)')}</div>
+                        <div class="actions">
+                            <button class="btn green" data-act="resolve">✅ Resolve</button>
+                            <button class="btn red" data-act="dismiss">🗑 Dismiss</button>
+                        </div>
+                    </div>
+                `;
+                el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
+
+                el.querySelector('[data-act="resolve"]').addEventListener('click', async () => {
+                    try {
+                        await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ labels: ['case-flag', 'status: resolved'] })
+                        });
+                        await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number + '/comments', {
+                            method: 'POST',
+                            body: JSON.stringify({ body: 'Flag resolved by administrator.' })
+                        });
+                        el.remove();
+                        loadFlags();
+                    } catch (e) {
+                        alert('Could not resolve flag: ' + e.message);
+                    }
+                });
+
+                el.querySelector('[data-act="dismiss"]').addEventListener('click', async () => {
+                    if (!confirm('Dismiss this flag?')) return;
+                    try {
+                        await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ labels: ['case-flag', 'status: dismissed'] })
+                        });
+                        el.remove();
+                        loadFlags();
+                    } catch (e) {
+                        alert('Could not dismiss flag: ' + e.message);
+                    }
+                });
+
+                return el;
             }
 
             // ─── PENDING ISSUES ─────────────────────────────────────
@@ -297,7 +405,7 @@
             }
 
             function parseBody(body) {
-                const out = { caseName: '', finalCourt: '', outcome: '', source: '' };
+                const out = { caseName: '', category: '', source: '', summary: '', impact: '', submittedBy: '' };
                 if (!body) return out;
                 body.split(/\r?\n/).forEach(line => {
                     const m = line.match(/^\*\*(.+?):\*\*\s*(.*)$/);
@@ -305,11 +413,48 @@
                     const key = m[1].toLowerCase();
                     const val = m[2].trim();
                     if (key.includes('case name')) out.caseName = val;
-                    else if (key.includes('final court')) out.finalCourt = val;
-                    else if (key.includes('outcome')) out.outcome = val;
+                    else if (key.includes('category')) out.category = val;
                     else if (key.includes('source')) out.source = val;
+                    else if (key.includes('summary')) out.summary = val;
+                    else if (key.includes('impact')) out.impact = val;
+                    else if (key.includes('submitted by')) out.submittedBy = val;
                 });
                 return out;
+            }
+
+            // Build category <option>s with one pre-selected (handles "Other…" custom values)
+            function categoryOptions(selected) {
+                let opts = CATEGORIES.map(c =>
+                    '<option value="' + escapeAttr(c) + '"' + (c === selected ? ' selected' : '') + '>' + escapeHtml(c) + '</option>'
+                ).join('');
+                const isCustom = selected && !CATEGORIES.includes(selected);
+                opts += '<option value="__other__"' + (isCustom ? ' selected' : '') + '>Other…</option>';
+                return { opts: opts, custom: isCustom ? selected : '' };
+            }
+
+            // Shared editable body for issue/local cards
+            function editableFields(d) {
+                const cat = categoryOptions(d.category || '');
+                const otherValue = cat.custom ? ' value="' + escapeAttr(cat.custom) + '"' : '';
+                return `
+                    <div class="field"><label>Case Name *</label><input type="text" data-f="caseName" value="${escapeAttr(d.caseName)}"></div>
+                    <div class="row2">
+                        <div class="field"><label>Source / Citation</label><input type="text" data-f="source" value="${escapeAttr(d.source)}"></div>
+                        <div class="field"><label>Submitted by (name / email)</label><input type="text" data-f="submittedBy" value="${escapeAttr(d.submittedBy)}"></div>
+                    </div>
+                    <div class="field"><label>Category *</label>
+                        <select data-f="category">${cat.opts}</select>
+                        <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:${cat.custom ? 'block' : 'none'};"${otherValue}>
+                    </div>
+                    <div class="field"><label>Summary *</label><textarea data-f="summary">${escapeHtml(d.summary)}</textarea></div>
+                    <div class="field"><label>Impact on Law Enforcement *</label><textarea data-f="impact">${escapeHtml(d.impact)}</textarea></div>
+                `;
+            }
+
+            function bindCategoryToggle(el) {
+                const sel = el.querySelector('[data-f="category"]');
+                const otherInput = el.querySelector('[data-f="categoryOther"]');
+                sel.addEventListener('change', () => { otherInput.style.display = sel.value === '__other__' ? 'block' : 'none'; });
             }
 
             function renderIssueCard(issue) {
@@ -325,19 +470,7 @@
                         <span class="badge pending">PENDING</span>
                     </div>
                     <div class="issue-body">
-                        <div class="field"><label>Case Name *</label><input type="text" data-f="caseName" value="${escapeAttr(d.caseName)}"></div>
-                        <div class="row2">
-                            <div class="field"><label>Final Court</label><input type="text" data-f="finalCourt" value="${escapeAttr(d.finalCourt)}"></div>
-                            <div class="field"><label>Source / Citation</label><input type="text" data-f="source" value="${escapeAttr(d.source)}"></div>
-                        </div>
-                        <div class="field"><label>Outcome / Ruling *</label><textarea data-f="outcome">${escapeHtml(d.outcome)}</textarea></div>
-                        <div class="field"><label>Category</label>
-                            <select data-f="category">
-                                ${CATEGORIES.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('')}
-                                <option value="__other__">Other…</option>
-                            </select>
-                            <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:none;">
-                        </div>
+                        ${editableFields(d)}
                         <div class="actions">
                             <button class="btn green" data-act="approve">✔ Approve &amp; publish</button>
                             <button class="btn red" data-act="reject">✖ Reject</button>
@@ -348,10 +481,7 @@
                 `;
                 // toggle open
                 el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
-                // category other toggle
-                const sel = el.querySelector('[data-f="category"]');
-                const otherInput = el.querySelector('[data-f="categoryOther"]');
-                sel.addEventListener('change', () => { otherInput.style.display = sel.value === '__other__' ? 'block' : 'none'; });
+                bindCategoryToggle(el);
 
                 const statusEl = el.querySelector('[data-status]');
                 el.querySelector('[data-act="approve"]').addEventListener('click', () => approveIssue(issue, el, statusEl));
@@ -371,8 +501,8 @@
             // ─── APPROVE ────────────────────────────────────────────
             async function approveIssue(issue, cardEl, statusEl) {
                 const f = collectFields(cardEl);
-                if (!f.caseName || !f.outcome) {
-                    setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return;
+                if (!f.caseName || !f.summary || !f.impact) {
+                    setStatus(statusEl, 'Case Name, Summary and Impact are required.', 'error'); return;
                 }
                 if (!f.category) {
                     setStatus(statusEl, 'Please choose a category.', 'error'); return;
@@ -384,10 +514,11 @@
                     await appendApprovedCase({
                         title: f.caseName,
                         citation: f.source || 'Not provided',
-                        summary: f.outcome,
-                        impact: f.outcome,
+                        summary: f.summary,
+                        impact: f.impact,
                         source: f.source || 'Not provided',
-                        category: f.category
+                        category: f.category,
+                        submittedBy: f.submittedBy || 'Not provided'
                     });
                     // mark issue approved
                     await api('/repos/' + OWNER + '/' + REPO + '/issues/' + issue.number, {
@@ -479,6 +610,85 @@
                 }
             }
 
+            // ─── LOCAL FLAGS (this browser) ─────────────────────────
+            function loadLocalFlags() {
+                const container = $('localFlagContainer');
+                let flags = [];
+                try { flags = JSON.parse(localStorage.getItem('caseFlags') || '[]'); } catch (e) { flags = []; }
+                $('localFlagCount').textContent = flags.length;
+                if (flags.length === 0) {
+                    container.innerHTML = '<div class="empty">No local flags.</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                flags.forEach((flag, i) => container.appendChild(renderLocalFlagCard(flag, i)));
+            }
+
+            function renderLocalFlagCard(flag, index) {
+                const el = document.createElement('div');
+                el.className = 'issue';
+                el.innerHTML = `
+                    <div class="issue-head">
+                        <div>
+                            <h3>${escapeHtml(flag.caseTitle || flag.caseId || 'Flagged case')}</h3>
+                            <div class="meta">${flag.date ? new Date(flag.date).toLocaleString() : 'saved locally'}</div>
+                        </div>
+                        <span class="badge pending">LOCAL FLAG</span>
+                    </div>
+                    <div class="issue-body">
+                        <div class="flag-reason">${escapeHtml(flag.reason || '(no reason given)')}</div>
+                        <div class="actions">
+                            <button class="btn" data-act="issue">⬆ Send to GitHub</button>
+                            <button class="btn gray" data-act="dismiss">🗑 Dismiss</button>
+                        </div>
+                    </div>
+                `;
+                el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
+
+                el.querySelector('[data-act="issue"]').addEventListener('click', async () => {
+                    const btn = el.querySelector('[data-act="issue"]');
+                    const token = getToken();
+                    if (!token) { alert('Sign in first to send flags to GitHub.'); return; }
+                    btn.disabled = true;
+                    try {
+                        const body = '**Flagged case:** ' + (flag.caseTitle || flag.caseId) + '\n'
+                            + '**Case page:** `cases/' + (flag.caseId || '') + '.html`\n\n'
+                            + '**Reason given:**\n' + (flag.reason || '');
+                        await api('/repos/' + OWNER + '/' + REPO + '/issues', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                title: 'Flag: ' + (flag.caseTitle || flag.caseId),
+                                body: body,
+                                labels: ['case-flag', 'status: pending']
+                            })
+                        });
+                        removeLocalFlag(index);
+                        el.remove();
+                        loadLocalFlags();
+                        loadFlags();
+                    } catch (e) {
+                        btn.disabled = false;
+                        alert('Could not send flag: ' + e.message);
+                    }
+                });
+
+                el.querySelector('[data-act="dismiss"]').addEventListener('click', () => {
+                    if (!confirm('Dismiss this local flag?')) return;
+                    removeLocalFlag(index);
+                    el.remove();
+                    loadLocalFlags();
+                });
+
+                return el;
+            }
+
+            function removeLocalFlag(index) {
+                let flags = [];
+                try { flags = JSON.parse(localStorage.getItem('caseFlags') || '[]'); } catch (e) { flags = []; }
+                flags.splice(index, 1);
+                localStorage.setItem('caseFlags', JSON.stringify(flags));
+            }
+
             // ─── LOCAL QUEUE ────────────────────────────────────────
             function loadLocal() {
                 const container = $('localContainer');
@@ -494,30 +704,26 @@
             }
 
             function renderLocalCard(sub, index) {
+                const d = {
+                    caseName: sub.caseName,
+                    category: sub.category || '',
+                    source: sub.source || '',
+                    summary: sub.summary || sub.outcome || '',
+                    impact: sub.impact || sub.outcome || '',
+                    submittedBy: sub.contact || sub.submittedBy || ''
+                };
                 const el = document.createElement('div');
                 el.className = 'issue';
                 el.innerHTML = `
                     <div class="issue-head">
                         <div>
-                            <h3>${escapeHtml(sub.caseName)}</h3>
+                            <h3>${escapeHtml(d.caseName)}</h3>
                             <div class="meta">${sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : 'saved locally'}</div>
                         </div>
                         <span class="badge pending">LOCAL</span>
                     </div>
                     <div class="issue-body">
-                        <div class="field"><label>Case Name</label><input type="text" data-f="caseName" value="${escapeAttr(sub.caseName)}"></div>
-                        <div class="row2">
-                            <div class="field"><label>Final Court</label><input type="text" data-f="finalCourt" value="${escapeAttr(sub.finalCourt)}"></div>
-                            <div class="field"><label>Source / Citation</label><input type="text" data-f="source" value="${escapeAttr(sub.source)}"></div>
-                        </div>
-                        <div class="field"><label>Outcome / Ruling</label><textarea data-f="outcome">${escapeHtml(sub.outcome)}</textarea></div>
-                        <div class="field"><label>Category</label>
-                            <select data-f="category">
-                                ${CATEGORIES.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('')}
-                                <option value="__other__">Other…</option>
-                            </select>
-                            <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:none;">
-                        </div>
+                        ${editableFields(d)}
                         <div class="actions">
                             <button class="btn green" data-act="approve">✔ Approve &amp; publish</button>
                             <button class="btn" data-act="issue">⬆ Send to GitHub</button>
@@ -527,25 +733,24 @@
                     </div>
                 `;
                 el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
-                const sel = el.querySelector('[data-f="category"]');
-                const otherInput = el.querySelector('[data-f="categoryOther"]');
-                sel.addEventListener('change', () => { otherInput.style.display = sel.value === '__other__' ? 'block' : 'none'; });
+                bindCategoryToggle(el);
 
                 const statusEl = el.querySelector('[data-status]');
                 el.querySelector('[data-act="approve"]').addEventListener('click', async () => {
                     const f = collectFields(el);
-                    if (!f.caseName || !f.outcome) { setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return; }
+                    if (!f.caseName || !f.summary || !f.impact) { setStatus(statusEl, 'Case Name, Summary and Impact are required.', 'error'); return; }
                     if (!f.category) { setStatus(statusEl, 'Please choose a category.', 'error'); return; }
                     if (!getToken()) { setStatus(statusEl, 'Sign in first — approving publishes via GitHub.', 'error'); return; }
                     try {
-                        await appendApprovedCase({ title: f.caseName, citation: f.source || 'Not provided', summary: f.outcome, impact: f.outcome, source: f.source || 'Not provided', category: f.category });
+                        await appendApprovedCase({ title: f.caseName, citation: f.source || 'Not provided', summary: f.summary, impact: f.impact, source: f.source || 'Not provided', category: f.category, submittedBy: f.submittedBy || 'Not provided' });
                         setStatus(statusEl, '✅ Approved. Site regenerating…', 'success');
                         setTimeout(() => { el.remove(); removeLocal(index); loadLocal(); }, 1500);
                     } catch (e) { setStatus(statusEl, '❌ ' + e.message, 'error'); }
                 });
                 el.querySelector('[data-act="issue"]').addEventListener('click', async () => {
                     const f = collectFields(el);
-                    if (!f.caseName || !f.outcome) { setStatus(statusEl, 'Case Name and Outcome are required.', 'error'); return; }
+                    if (!f.caseName || !f.summary || !f.impact) { setStatus(statusEl, 'Case Name, Summary and Impact are required.', 'error'); return; }
+                    if (!f.category) { setStatus(statusEl, 'Please choose a category.', 'error'); return; }
                     if (!getToken()) { setStatus(statusEl, 'Sign in first.', 'error'); return; }
                     try {
                         await createIssue(f);
@@ -572,9 +777,11 @@
             async function createIssue(f) {
                 const body = [
                     '**Case Name:** ' + f.caseName,
-                    '**Final Court:** ' + (f.finalCourt || 'Not provided'),
-                    '**Outcome / Ruling:** ' + f.outcome,
-                    '**Source / Citation:** ' + (f.source || 'Not provided')
+                    '**Category:** ' + f.category,
+                    '**Source / Citation:** ' + (f.source || 'Not provided'),
+                    '**Summary:** ' + f.summary,
+                    '**Impact on Law Enforcement:** ' + f.impact,
+                    '**Submitted by:** ' + (f.submittedBy || 'Not provided')
                 ].join('\n');
                 await api('/repos/' + OWNER + '/' + REPO + '/issues', {
                     method: 'POST',
@@ -584,6 +791,117 @@
                         labels: ['case-submission', 'status: pending']
                     })
                 });
+            }
+
+            // ─── EXISTING CASES ─────────────────────────────────────
+            // Editable body for an already-published case (separate Citation + Source)
+            function editableFieldsExisting(c) {
+                const cat = categoryOptions(c.category || '');
+                const otherValue = cat.custom ? ' value="' + escapeAttr(cat.custom) + '"' : '';
+                return `
+                    <div class="field"><label>Case Name / Title *</label><input type="text" data-f="caseName" value="${escapeAttr(c.title)}"></div>
+                    <div class="row2">
+                        <div class="field"><label>Citation</label><input type="text" data-f="citation" value="${escapeAttr(c.citation)}"></div>
+                        <div class="field"><label>Source</label><input type="text" data-f="source" value="${escapeAttr(c.source)}"></div>
+                    </div>
+                    <div class="field"><label>Category *</label>
+                        <select data-f="category">${cat.opts}</select>
+                        <input type="text" data-f="categoryOther" placeholder="Custom category name" style="margin-top:6px; display:${cat.custom ? 'block' : 'none'};"${otherValue}>
+                    </div>
+                    <div class="field"><label>Summary *</label><textarea data-f="summary">${escapeHtml(c.summary)}</textarea></div>
+                    <div class="field"><label>Impact on Law Enforcement *</label><textarea data-f="impact">${escapeHtml(c.impact)}</textarea></div>
+                `;
+            }
+
+            // Upsert an edit (update or delete) into edits.json
+            async function upsertEdit(edit) {
+                const existing = await api('/repos/' + OWNER + '/' + REPO + '/contents/' + EDITS_PATH);
+                const data = JSON.parse(b64ToUtf8(existing.content));
+                data.edits = data.edits || [];
+                const idx = data.edits.findIndex(e => e.id === edit.id);
+                if (idx >= 0) data.edits[idx] = edit; else data.edits.push(edit);
+                await api('/repos/' + OWNER + '/' + REPO + '/contents/' + EDITS_PATH, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        message: 'Edit case: ' + (edit.title || edit.id) + ' (' + edit.action + ')',
+                        content: utf8ToB64(JSON.stringify(data, null, 2)),
+                        sha: existing.sha
+                    })
+                });
+            }
+
+            async function loadExisting() {
+                const container = $('existingContainer');
+                if (!getToken()) {
+                    container.innerHTML = '<div class="empty">Sign in to load existing cases.</div>';
+                    return;
+                }
+                container.innerHTML = '<div class="empty">Loading…</div>';
+                try {
+                    const file = await api('/repos/' + OWNER + '/' + REPO + '/contents/' + CASES_PATH);
+                    const data = JSON.parse(b64ToUtf8(file.content));
+                    const cases = data.cases || [];
+                    $('existingCount').textContent = cases.length;
+                    if (cases.length === 0) { container.innerHTML = '<div class="empty">No cases found.</div>'; return; }
+                    container.innerHTML = '';
+                    cases.forEach(c => container.appendChild(renderExistingCard(c)));
+                } catch (e) {
+                    container.innerHTML = '<div class="empty">⚠️ Could not load cases: ' + e.message + '</div>';
+                }
+            }
+
+            function renderExistingCard(c) {
+                const el = document.createElement('div');
+                el.className = 'issue';
+                el.style.borderLeftColor = '#1a3a6e';
+                el.innerHTML = `
+                    <div class="issue-head">
+                        <div>
+                            <h3>${escapeHtml(c.title)}</h3>
+                            <div class="meta">${escapeHtml(c.citation || '')} · ${escapeHtml(c.category || '')}</div>
+                        </div>
+                        <span class="badge approved">PUBLISHED</span>
+                    </div>
+                    <div class="issue-body">
+                        ${editableFieldsExisting(c)}
+                        <div class="actions">
+                            <button class="btn green" data-act="save">💾 Save edits</button>
+                            <button class="btn red" data-act="delete">🗑 Delete case</button>
+                        </div>
+                        <div class="status" data-status></div>
+                    </div>
+                `;
+                el.querySelector('.issue-head').addEventListener('click', () => el.classList.toggle('open'));
+                bindCategoryToggle(el);
+                const statusEl = el.querySelector('[data-status]');
+
+                el.querySelector('[data-act="save"]').addEventListener('click', async () => {
+                    const f = collectFields(el);
+                    if (!f.caseName || !f.summary || !f.impact) { setStatus(statusEl, 'Title, Summary and Impact are required.', 'error'); return; }
+                    if (!f.category) { setStatus(statusEl, 'Please choose a category.', 'error'); return; }
+                    try {
+                        await upsertEdit({
+                            id: c.id,
+                            title: f.caseName,
+                            citation: f.citation || 'Not provided',
+                            summary: f.summary,
+                            impact: f.impact,
+                            source: f.source || 'Not provided',
+                            category: f.category,
+                            action: 'update'
+                        });
+                        setStatus(statusEl, '✅ Saved. The site is regenerating…', 'success');
+                    } catch (e) { setStatus(statusEl, '❌ ' + e.message, 'error'); }
+                });
+
+                el.querySelector('[data-act="delete"]').addEventListener('click', async () => {
+                    if (!confirm('Delete the case "' + c.title + '" entirely? It will be removed from the published site on the next rebuild.')) return;
+                    try {
+                        await upsertEdit({ id: c.id, action: 'delete' });
+                        setStatus(statusEl, '🗑 Delete saved. The site will remove this case on the next rebuild.', 'success');
+                    } catch (e) { setStatus(statusEl, '❌ ' + e.message, 'error'); }
+                });
+                return el;
             }
 
             // ─── ESCAPING ───────────────────────────────────────────

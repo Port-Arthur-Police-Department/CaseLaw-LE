@@ -384,6 +384,71 @@ TEMPLATE = '''<!DOCTYPE html>
         .case-card .source a:hover {{
             color: #0e2a52;
         }}
+        .disclaimer {{
+            background: #fff3cd;
+            border: 1px solid #ffe69c;
+            border-left: 4px solid #d4a017;
+            padding: 14px 18px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #664d03;
+            line-height: 1.5;
+        }}
+        .disclaimer strong {{ color: #5c4503; }}
+        .flag-section {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }}
+        .flag-btn {{
+            background: none;
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }}
+        .flag-btn:hover {{ background: #dc3545; color: white; }}
+        .flag-modal {{
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }}
+        .flag-modal.open {{ display: flex; }}
+        .flag-modal-content {{
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }}
+        .flag-modal h3 {{ color: #1a3a6e; margin-bottom: 14px; }}
+        .flag-modal textarea {{
+            width: 100%; min-height: 100px;
+            padding: 10px; border: 1px solid #ddd; border-radius: 4px;
+            font-family: inherit; font-size: 14px;
+            resize: vertical;
+            margin-bottom: 12px;
+        }}
+        .flag-modal-actions {{
+            display: flex; gap: 10px; justify-content: flex-end;
+        }}
+        .flag-status {{
+            margin-top: 12px; padding: 10px; border-radius: 4px; display: none;
+            font-size: 14px; font-weight: 500;
+        }}
+        .flag-status.success {{ display: block; background: #d4edda; color: #155724; }}
+        .flag-status.error {{ display: block; background: #f8d7da; color: #721c24; }}
         footer {{
             margin-top: 40px;
             text-align: center;
@@ -440,11 +505,117 @@ TEMPLATE = '''<!DOCTYPE html>
         <div class="source">
             <strong>Source:</strong> {source_html}
         </div>
+
+        <div class="disclaimer">
+            <strong>⚠️ Legal disclaimer:</strong> Some content on this site is contributed by users and may not have been independently verified. Case summaries and legal analysis are provided for general reference and training purposes only — they are not legal advice. Always consult current primary sources (court opinions, statutes, and department policy) before relying on any information here.
+        </div>
+
+        <div class="flag-section">
+            <button type="button" class="flag-btn" onclick="openFlagModal()">🚩 Flag this case as inaccurate</button>
+        </div>
+    </div>
+
+    <!-- Flag modal -->
+    <div class="flag-modal" id="flagModal" onclick="if(event.target===this)closeFlagModal()">
+        <div class="flag-modal-content">
+            <h3>🚩 Flag this case as inaccurate</h3>
+            <p style="font-size:14px;color:#555;margin-bottom:12px;">
+                Tell us what is inaccurate. Your feedback is sent to the site administrator for review.
+            </p>
+            <textarea id="flagReason" placeholder="Describe what is inaccurate and how it should be corrected..."></textarea>
+            <div class="flag-modal-actions">
+                <button type="button" class="flag-btn" style="border-color:#6c757d;color:#6c757d;" onclick="closeFlagModal()">Cancel</button>
+                <button type="button" style="background:#dc3545;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;" onclick="submitFlag()">Submit Flag</button>
+            </div>
+            <div class="flag-status" id="flagStatus"></div>
+        </div>
     </div>
 
     <footer>
         &copy; 2025 Port Arthur Police Department. All rights reserved.
     </footer>
+
+<script>
+    var CASE_ID = {case_id_json};
+    var CASE_TITLE = {case_title_json};
+
+    function openFlagModal() {{
+        document.getElementById('flagModal').classList.add('open');
+        document.getElementById('flagStatus').style.display = 'none';
+        document.getElementById('flagReason').value = '';
+        document.getElementById('flagReason').focus();
+    }}
+
+    function closeFlagModal() {{
+        document.getElementById('flagModal').classList.remove('open');
+    }}
+
+    function submitFlag() {{
+        var reason = document.getElementById('flagReason').value.trim();
+        var statusEl = document.getElementById('flagStatus');
+        if (!reason) {{
+            statusEl.textContent = 'Please enter a reason before submitting.';
+            statusEl.className = 'flag-status error';
+            statusEl.style.display = 'block';
+            return;
+        }}
+
+        var body = '**Flagged case:** ' + CASE_TITLE + '\\n'
+            + '**Case page:** `cases/' + CASE_ID + '.html`\\n\\n'
+            + '**Reason given:**\\n' + reason;
+
+        // If an admin token is active in this browser session, create a GitHub Issue.
+        var token = sessionStorage.getItem('gh_admin_token');
+        if (token) {{
+            fetch('https://api.github.com/repos/Port-Arthur-Police-Department/CaseLaw-LE/issues', {{
+                method: 'POST',
+                headers: {{
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/vnd.github+json',
+                    'Content-Type': 'application/json'
+                }},
+                body: JSON.stringify({{
+                    title: 'Flag: ' + CASE_TITLE,
+                    body: body,
+                    labels: ['case-flag', 'status: pending']
+                }})
+            }}).then(function(resp) {{
+                if (!resp.ok) {{ throw new Error('GitHub API returned ' + resp.status); }}
+                statusEl.textContent = '✅ Flag submitted to the administrator. Thank you!';
+                statusEl.className = 'flag-status success';
+                statusEl.style.display = 'block';
+                setTimeout(closeFlagModal, 2000);
+            }}).catch(function(err) {{
+                statusEl.textContent = 'Could not submit to GitHub (' + err.message + '). Your flag was saved locally instead.';
+                statusEl.className = 'flag-status error';
+                statusEl.style.display = 'block';
+                saveFlagLocally(reason);
+            }});
+        }} else {{
+            // No admin token — save locally and tell the user.
+            saveFlagLocally(reason);
+            statusEl.textContent = '✅ Flag saved. It will be visible to the administrator on the admin page.';
+            statusEl.className = 'flag-status success';
+            statusEl.style.display = 'block';
+            setTimeout(closeFlagModal, 2500);
+        }}
+    }}
+
+    function saveFlagLocally(reason) {{
+        try {{
+            var flags = JSON.parse(localStorage.getItem('caseFlags') || '[]');
+            flags.push({{
+                caseId: CASE_ID,
+                caseTitle: CASE_TITLE,
+                reason: reason,
+                date: new Date().toISOString()
+            }});
+            localStorage.setItem('caseFlags', JSON.stringify(flags));
+        }} catch (e) {{
+            console.warn('Could not save flag locally:', e);
+        }}
+    }}
+</script>
 
 </body>
 </html>
@@ -503,6 +674,71 @@ def load_approved_submissions():
     if added:
         print(f"✅ Merged {added} approved submission(s) from submissions.json")
 
+def get_category_of(case_id):
+    """Return the category dict that currently contains case_id (or None)."""
+    for cat in categories_config:
+        if case_id in cat["cases"]:
+            return cat
+    return None
+
+def load_edits():
+    """Apply admin edits (edits.json) to case_data/categories — update or delete existing cases."""
+    path = "edits.json"
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Could not read {path}: {e}")
+        return
+
+    edits = data.get("edits", [])
+    if not edits:
+        return
+
+    by_id = {c["id"]: c for c in case_data}
+    applied = 0
+    for edit in edits:
+        cid = edit.get("id")
+        if not cid:
+            continue
+        action = edit.get("action", "update")
+
+        if action == "delete":
+            case = by_id.pop(cid, None)
+            if case is not None:
+                case_data.remove(case)
+            for cat in categories_config:
+                if cid in cat["cases"]:
+                    cat["cases"].remove(cid)
+            applied += 1
+            continue
+
+        # update existing case fields
+        case = by_id.get(cid)
+        if case is None:
+            continue
+        for field in ("title", "citation", "summary", "impact", "source"):
+            if edit.get(field):
+                case[field] = edit[field]
+        # move to a different category if requested
+        new_cat_name = (edit.get("category") or "").strip()
+        if new_cat_name:
+            old_cat = get_category_of(cid)
+            target = next((c for c in categories_config if c["name"] == new_cat_name), None)
+            if target is None:
+                categories_config.append({"name": new_cat_name, "icon": "📌", "cases": [cid]})
+            else:
+                if old_cat and old_cat is not target and cid in old_cat["cases"]:
+                    old_cat["cases"].remove(cid)
+                if cid not in target["cases"]:
+                    target["cases"].append(cid)
+        applied += 1
+
+    if applied:
+        print(f"✅ Applied {applied} edit(s) from edits.json")
+
 def generate_case_files():
     os.makedirs("cases", exist_ok=True)
     for case in case_data:
@@ -519,11 +755,21 @@ def generate_case_files():
             citation=case['citation'],
             summary=case['summary'],
             impact=case['impact'],
-            source_html=source_html
+            source_html=source_html,
+            case_id_json=json.dumps(case['id']),
+            case_title_json=json.dumps(case['title'])
         )
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(content)
         print(f"✅ Generated {filename}")
+
+    # Remove any orphaned case pages (e.g. cases deleted via admin edits)
+    valid_ids = {c["id"] for c in case_data}
+    for fn in os.listdir("cases"):
+        if fn.endswith(".html") and fn[:-5] not in valid_ids:
+            os.remove(os.path.join("cases", fn))
+            print(f"🗑 Removed orphaned {os.path.join('cases', fn)}")
+
     print(f"✅ All {len(case_data)} case files generated.")
 
 def update_index_categories():
@@ -592,11 +838,31 @@ def update_caselaw_data():
             f.write(new_content)
         print("✅ Updated caseData in caselaw.html")
 
+def write_cases_json():
+    """Write the merged list of cases (base + approved + edits) to cases.json for the admin page."""
+    cases = []
+    for case in case_data:
+        cat = get_category_of(case["id"])
+        cases.append({
+            "id": case["id"],
+            "title": case["title"],
+            "citation": case["citation"],
+            "summary": case["summary"],
+            "impact": case["impact"],
+            "source": case["source"],
+            "category": cat["name"] if cat else ""
+        })
+    with open("cases.json", "w", encoding="utf-8") as f:
+        json.dump({"cases": cases}, f, ensure_ascii=False, indent=2)
+    print(f"✅ Wrote cases.json ({len(cases)} cases)")
+
 def main():
     load_approved_submissions()
+    load_edits()
     generate_case_files()
     update_index_categories()
     update_caselaw_data()
+    write_cases_json()
     print("\n🎉 All done!")
 
 if __name__ == "__main__":
