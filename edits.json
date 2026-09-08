@@ -24,6 +24,17 @@
       "category": "Reasonable Suspicion & Terry Stops",
       "submittedBy": "TVC",
       "action": "update"
+    },
+    {
+      "id": "chimel-v-california",
+      "title": "Chimel v. California",
+      "citation": "395 U.S. 752 (1969)",
+      "summary": "When a person is arrested in his residence, a search of the immediate \"wingspan\" area — where he could hide weapons or evidence — can be searched without a warrant. No other areas of the home may be searched.",
+      "impact": "Defines the scope of a warrantless search incident to arrest inside a home. Officers may only search the area within the arrestee's immediate reach (the \"wingspan\") for officer safety or to prevent destruction of evidence.",
+      "source": "SCOTUS, 395 U.S. 752 (1969)",
+      "category": "Search Warrants & Exceptions",
+      "submittedBy": "TVC",
+      "action": "update"
     }
   ]
 }
