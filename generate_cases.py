@@ -459,6 +459,15 @@ TEMPLATE = '''<!DOCTYPE html>
             padding: 16px 0;
             border-top: 1px solid #e0e0e0;
         }}
+        .footer-admin {{
+            color: inherit;
+            text-decoration: none;
+            font-size: 15px;
+            opacity: 0.45;
+            margin-left: 10px;
+            vertical-align: middle;
+        }}
+        .footer-admin:hover {{ opacity: 0.9; }}
         @media (max-width: 700px) {{
             body {{ padding: 12px; }}
             header {{ padding: 15px; justify-content: center; }}
@@ -535,6 +544,7 @@ TEMPLATE = '''<!DOCTYPE html>
 
     <footer>
         &copy; 2025 Port Arthur Police Department. All rights reserved.
+        <a class="footer-admin" href="../admin.html" aria-label="Admin settings">⚙️</a>
     </footer>
 
 <script>
