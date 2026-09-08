@@ -331,9 +331,6 @@ TEMPLATE = '''<!DOCTYPE html>
             background: #e9f0fd;
             text-decoration: underline;
         }}
-        .back-link::before {{
-            content: '← ';
-        }}
         .case-card {{
             background: white;
             border-radius: 5px;
