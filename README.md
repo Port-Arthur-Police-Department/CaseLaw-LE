@@ -52,4 +52,4 @@ To get the website to update, go to DevTools → Application → Storage → cle
 ## Notes / known issues
 
 - The old online form submission (Formspree) has been replaced by the admin workflow above.
-- `manifest.json` references `icon-192.png` / `icon-512.png`, which are not present in the repo; the PWA icons are currently a no-op.
+- Badges and all icon/favicon assets live in `/assets` (including the PWA manifest `assets/site.webmanifest`). If you add a new case file or asset, remember to add it to the `urlsToCache` list in `sw.js` and bump `CACHE_NAME`.

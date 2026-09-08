@@ -1,15 +1,25 @@
 // ─── CACHE VERSION ──────────────────────────────────────────────
-const CACHE_NAME = 'case-law-v3';
+const CACHE_NAME = 'case-law-v4';
 const urlsToCache = [
   // ── Root / core files ──
   '.',
   'index.html',
   'caselaw.html',
   'admin.html',
-  'manifest.json',
   'submissions.json',
   'edits.json',
   'cases.json',
+
+  // ── Assets (badges, favicons, PWA manifest) ──
+  'assets/site.webmanifest',
+  'assets/officer-badge.png',
+  'assets/department-badge.png',
+  'assets/favicon.ico',
+  'assets/favicon-16x16.png',
+  'assets/favicon-32x32.png',
+  'assets/apple-touch-icon.png',
+  'assets/android-chrome-192x192.png',
+  'assets/android-chrome-512x512.png',
 
   // ── All case files ──
   'cases/terry-v-ohio.html',
