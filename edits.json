@@ -9,6 +9,10 @@
       "source": "Common Law Doctrine — Hearsay Exception",
       "category": "4th Amendment & Evidence Rules",
       "action": "update"
+    },
+    {
+      "id": "test",
+      "action": "delete"
     }
   ]
 }
