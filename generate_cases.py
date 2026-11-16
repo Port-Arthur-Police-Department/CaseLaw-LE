@@ -338,6 +338,54 @@ TEMPLATE = '''<!DOCTYPE html>
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             border-left: 6px solid #1a3a6e;
         }}
+        .case-image-container {{
+            width: 100%;
+            max-height: 300px;
+            overflow: hidden;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+        }}
+        .case-image {{
+            width: 100%;
+            height: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            display: block;
+        }}
+        .case-image-container.placeholder {{
+            background: transparent;
+            border: none;
+        }}
+        .case-image-placeholder {{
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #f0f4fc 0%, #e2eaf8 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #1a3a6e;
+            border: 2px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+        }}
+        .placeholder-icon {{
+            font-size: 36px;
+        }}
+        .placeholder-text {{
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
         .case-card h1 {{
             color: #1a3a6e;
             font-size: 28px;
@@ -519,6 +567,7 @@ TEMPLATE = '''<!DOCTYPE html>
     <a href="../index.html" class="back-link">← Back to Case Categories</a>
 
     <div class="case-card">
+        {image_html}
         <h1>{title}</h1>
         <div class="citation">{citation}</div>
 
@@ -784,6 +833,41 @@ def get_initials(text):
     initials = "".join(w[0].upper() for w in words[:2])
     return initials or ""
 
+def get_case_image_info(case_id, relative_prefix=".."):
+    os.makedirs("caseImages", exist_ok=True)
+    for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]:
+        fn = f"{case_id}{ext}"
+        full_path = os.path.join("caseImages", fn)
+        if os.path.exists(full_path):
+            img_path = f"{relative_prefix}/caseImages/{fn}"
+            html = f'<div class="case-image-container"><img src="{img_path}" alt="Case Image" class="case-image" onerror="this.onerror=null; this.parentElement.outerHTML=\'<div class=\\\'case-image-container placeholder\\\'><div class=\\\'case-image-placeholder\\\'><span class=\\\'placeholder-icon\\\'>⚖️</span><span class=\\\'placeholder-text\\\'>No image available</span></div></div>\';"></div>'
+            return {"image": f"caseImages/{fn}", "html": html}
+
+    # If no image file exists, create a placeholder SVG file in caseImages/{case_id}.svg
+    placeholder_fn = f"{case_id}.svg"
+    placeholder_path = os.path.join("caseImages", placeholder_fn)
+    svg_content = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%">
+    <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f0f4fc"/>
+            <stop offset="100%" stop-color="#e2eaf8"/>
+        </linearGradient>
+    </defs>
+    <rect width="400" height="250" fill="url(#bg)" rx="8" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 6"/>
+    <text x="200" y="110" text-anchor="middle" font-size="48">⚖️</text>
+    <text x="200" y="165" text-anchor="middle" fill="#1a3a6e" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600" letter-spacing="1">NO IMAGE AVAILABLE</text>
+</svg>'''
+    try:
+        with open(placeholder_path, 'w', encoding='utf-8') as pf:
+            pf.write(svg_content)
+        print(f"📁 Created placeholder image file: {placeholder_path}")
+    except Exception as e:
+        print(f"⚠️ Could not create placeholder file for {case_id}: {e}")
+
+    img_path = f"{relative_prefix}/caseImages/{placeholder_fn}"
+    html = f'<div class="case-image-container"><img src="{img_path}" alt="Case Image" class="case-image" onerror="this.onerror=null; this.parentElement.outerHTML=\'<div class=\\\'case-image-container placeholder\\\'><div class=\\\'case-image-placeholder\\\'><span class=\\\'placeholder-icon\\\'>⚖️</span><span class=\\\'placeholder-text\\\'>No image available</span></div></div>\';"></div>'
+    return {"image": f"caseImages/{placeholder_fn}", "html": html}
+
 def generate_case_files():
     os.makedirs("cases", exist_ok=True)
     for case in case_data:
@@ -806,6 +890,8 @@ def generate_case_files():
         else:
             submitted_by_html = ""
 
+        img_info = get_case_image_info(case['id'], relative_prefix="..")
+
         filename = f"cases/{case['id']}.html"
         content = TEMPLATE.format(
             title=case['title'],
@@ -814,6 +900,7 @@ def generate_case_files():
             impact=case['impact'],
             source_html=source_html,
             submitted_by_html=submitted_by_html,
+            image_html=img_info['html'],
             case_id_json=json.dumps(case['id']),
             case_title_json=json.dumps(case['title'])
         )
@@ -877,6 +964,7 @@ def update_caselaw_data():
 
     lines = []
     for case in case_data:
+        img_info = get_case_image_info(case["id"], relative_prefix=".")
         obj = {
             "id": case["id"],
             "title": case["title"],
@@ -884,6 +972,7 @@ def update_caselaw_data():
             "summary": case["summary"],
             "impact": case["impact"],
             "source": case["source"],
+            "image": img_info["image"]
         }
         lines.append("                " + json.dumps(obj, ensure_ascii=False))
     new_data_js = "const caseData = [\n" + ",\n".join(lines) + "\n            ];"
@@ -901,6 +990,7 @@ def write_cases_json():
     cases = []
     for case in case_data:
         cat = get_category_of(case["id"])
+        img_info = get_case_image_info(case["id"], relative_prefix=".")
         cases.append({
             "id": case["id"],
             "title": case["title"],
@@ -909,7 +999,8 @@ def write_cases_json():
             "impact": case["impact"],
             "source": case["source"],
             "category": cat["name"] if cat else "",
-            "submittedBy": case.get("submittedBy", "")
+            "submittedBy": case.get("submittedBy", ""),
+            "image": img_info["image"]
         })
     with open("cases.json", "w", encoding="utf-8") as f:
         json.dump({"cases": cases}, f, ensure_ascii=False, indent=2)
