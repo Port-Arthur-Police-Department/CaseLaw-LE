@@ -9,7 +9,7 @@
       "source": "SCOTUS, 392 U.S. 1 (1968)",
       "category": "Reasonable Suspicion & Terry Stops",
       "submittedBy": "Terry Chance",
-      "image": "caseImages/terry-v-ohio.svg"
+      "image": "caseImages/terry-v-ohio.jpg"
     },
     {
       "id": "chimel-v-california",
@@ -20,7 +20,7 @@
       "source": "SCOTUS, 395 U.S. 752 (1969)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "Terry Chance",
-      "image": "caseImages/chimel-v-california.svg"
+      "image": ""
     },
     {
       "id": "arizona-v-gant",
@@ -31,7 +31,7 @@
       "source": "SCOTUS, 556 U.S. 332 (2009)",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/arizona-v-gant.svg"
+      "image": ""
     },
     {
       "id": "carroll-v-us",
@@ -42,7 +42,7 @@
       "source": "SCOTUS, 267 U.S. 132 (1925)",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/carroll-v-us.svg"
+      "image": ""
     },
     {
       "id": "whren-v-us",
@@ -53,7 +53,7 @@
       "source": "SCOTUS, 517 U.S. 806 (1996)",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/whren-v-us.svg"
+      "image": ""
     },
     {
       "id": "wardlow-v-illinois",
@@ -64,7 +64,7 @@
       "source": "SCOTUS, 528 U.S. 119 (2000)",
       "category": "Reasonable Suspicion & Terry Stops",
       "submittedBy": "",
-      "image": "caseImages/wardlow-v-illinois.svg"
+      "image": "caseImages/wardlow-v-illinois.jpg"
     },
     {
       "id": "florida-v-jl",
@@ -75,7 +75,7 @@
       "source": "SCOTUS, 529 U.S. 266 (2000)",
       "category": "Reasonable Suspicion & Terry Stops",
       "submittedBy": "",
-      "image": "caseImages/florida-v-jl.svg"
+      "image": "caseImages/florida-v-jl.jpg"
     },
     {
       "id": "ny-v-quarles",
@@ -86,7 +86,7 @@
       "source": "SCOTUS, 467 U.S. 649 (1984)",
       "category": "Custody, Miranda & Interrogation",
       "submittedBy": "",
-      "image": "caseImages/ny-v-quarles.svg"
+      "image": ""
     },
     {
       "id": "kaupp-v-texas",
@@ -97,7 +97,7 @@
       "source": "SCOTUS, 538 U.S. 626 (2003)",
       "category": "Custody, Miranda & Interrogation",
       "submittedBy": "",
-      "image": "caseImages/kaupp-v-texas.svg"
+      "image": ""
     },
     {
       "id": "muehler-v-mena",
@@ -108,7 +108,7 @@
       "source": "SCOTUS, 544 U.S. 93 (2005)",
       "category": "Custody, Miranda & Interrogation",
       "submittedBy": "",
-      "image": "caseImages/muehler-v-mena.svg"
+      "image": ""
     },
     {
       "id": "horton-v-california",
@@ -119,7 +119,7 @@
       "source": "SCOTUS, 496 U.S. 128 (1990)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/horton-v-california.svg"
+      "image": ""
     },
     {
       "id": "minnesota-v-dickerson",
@@ -130,7 +130,7 @@
       "source": "SCOTUS, 508 U.S. 366 (1993)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/minnesota-v-dickerson.svg"
+      "image": ""
     },
     {
       "id": "pennsylvania-v-mimms",
@@ -141,7 +141,7 @@
       "source": "SCOTUS, 434 U.S. 106 (1977)",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/pennsylvania-v-mimms.svg"
+      "image": ""
     },
     {
       "id": "maryland-v-wilson",
@@ -152,7 +152,7 @@
       "source": "SCOTUS, 519 U.S. 408 (1997)",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/maryland-v-wilson.svg"
+      "image": ""
     },
     {
       "id": "katz-v-us",
@@ -163,7 +163,7 @@
       "source": "SCOTUS, 389 U.S. 347 (1967)",
       "category": "4th Amendment & Evidence Rules",
       "submittedBy": "",
-      "image": "caseImages/katz-v-us.svg"
+      "image": ""
     },
     {
       "id": "riley-v-california",
@@ -174,7 +174,7 @@
       "source": "SCOTUS, 573 U.S. 373 (2014)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/riley-v-california.svg"
+      "image": ""
     },
     {
       "id": "brigham-city-v-stuart",
@@ -185,7 +185,7 @@
       "source": "SCOTUS, 547 U.S. 398 (2006)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/brigham-city-v-stuart.svg"
+      "image": ""
     },
     {
       "id": "mincey-v-arizona",
@@ -196,7 +196,7 @@
       "source": "SCOTUS, 437 U.S. 385 (1978)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/mincey-v-arizona.svg"
+      "image": ""
     },
     {
       "id": "cady-v-dombrowski",
@@ -207,7 +207,7 @@
       "source": "SCOTUS, 413 U.S. 433 (1973)",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/cady-v-dombrowski.svg"
+      "image": ""
     },
     {
       "id": "brown-v-texas",
@@ -218,7 +218,7 @@
       "source": "SCOTUS, 443 U.S. 47 (1979)",
       "category": "Reasonable Suspicion & Terry Stops",
       "submittedBy": "",
-      "image": "caseImages/brown-v-texas.svg"
+      "image": "caseImages/brown-v-texas.jpg"
     },
     {
       "id": "schneckloth-v-bustamonte",
@@ -229,7 +229,7 @@
       "source": "https://supreme.justia.com/cases/federal/us/412/218/",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/schneckloth-v-bustamonte.svg"
+      "image": ""
     },
     {
       "id": "united-states-v-brignoni-ponce",
@@ -240,7 +240,7 @@
       "source": "https://supreme.justia.com/cases/federal/us/422/873/",
       "category": "Traffic Stops & Vehicle Searches",
       "submittedBy": "",
-      "image": "caseImages/united-states-v-brignoni-ponce.svg"
+      "image": ""
     },
     {
       "id": "collins-v-virginia",
@@ -251,7 +251,7 @@
       "source": "https://supreme.justia.com/cases/federal/us/584/16-1027/",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/collins-v-virginia.svg"
+      "image": ""
     },
     {
       "id": "case-v-montana",
@@ -262,7 +262,7 @@
       "source": "https://supreme.justia.com/cases/federal/us/607/24-624/",
       "category": "Search Warrants & Exceptions",
       "submittedBy": "",
-      "image": "caseImages/case-v-montana.svg"
+      "image": ""
     },
     {
       "id": "res-gestae",
@@ -273,7 +273,7 @@
       "source": "Common Law Doctrine — Hearsay Exception",
       "category": "4th Amendment & Evidence Rules",
       "submittedBy": "",
-      "image": "caseImages/res-gestae.svg"
+      "image": ""
     }
   ]
 }

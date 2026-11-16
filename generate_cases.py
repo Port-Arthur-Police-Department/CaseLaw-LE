@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 
 # ─── CATEGORIES ──────────────────────────────────────────────────────
 categories_config = [
@@ -835,38 +836,54 @@ def get_initials(text):
 
 def get_case_image_info(case_id, relative_prefix=".."):
     os.makedirs("caseImages", exist_ok=True)
-    for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]:
+
+    # Clean up any old orphaned .svg placeholder files
+    svg_path = os.path.join("caseImages", f"{case_id}.svg")
+    if os.path.exists(svg_path):
+        try:
+            os.remove(svg_path)
+            print(f"🗑 Removed old placeholder SVG: {svg_path}")
+        except Exception:
+            pass
+
+    placeholder_fn = f"{case_id}.jpg"
+    placeholder_path = os.path.join("caseImages", placeholder_fn)
+
+    # Check if a real image (jpg, jpeg, png, webp, gif) exists
+    for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
         fn = f"{case_id}{ext}"
         full_path = os.path.join("caseImages", fn)
         if os.path.exists(full_path):
+            # If it's our tiny auto-generated placeholder (<= 200 bytes), treat as placeholder
+            if ext == ".jpg" and os.path.getsize(full_path) <= 200:
+                continue
+
             img_path = f"{relative_prefix}/caseImages/{fn}"
             html = f'<div class="case-image-container"><img src="{img_path}" alt="Case Image" class="case-image" onerror="this.onerror=null; this.parentElement.outerHTML=\'<div class=\\\'case-image-container placeholder\\\'><div class=\\\'case-image-placeholder\\\'><span class=\\\'placeholder-icon\\\'>⚖️</span><span class=\\\'placeholder-text\\\'>No image available</span></div></div>\';"></div>'
             return {"image": f"caseImages/{fn}", "html": html}
 
-    # If no image file exists, create a placeholder SVG file in caseImages/{case_id}.svg
-    placeholder_fn = f"{case_id}.svg"
-    placeholder_path = os.path.join("caseImages", placeholder_fn)
-    svg_content = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" width="100%" height="100%">
-    <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f0f4fc"/>
-            <stop offset="100%" stop-color="#e2eaf8"/>
-        </linearGradient>
-    </defs>
-    <rect width="400" height="250" fill="url(#bg)" rx="8" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 6"/>
-    <text x="200" y="110" text-anchor="middle" font-size="48">⚖️</text>
-    <text x="200" y="165" text-anchor="middle" fill="#1a3a6e" font-family="Segoe UI, sans-serif" font-size="16" font-weight="600" letter-spacing="1">NO IMAGE AVAILABLE</text>
-</svg>'''
-    try:
-        with open(placeholder_path, 'w', encoding='utf-8') as pf:
-            pf.write(svg_content)
-        print(f"📁 Created placeholder image file: {placeholder_path}")
-    except Exception as e:
-        print(f"⚠️ Could not create placeholder file for {case_id}: {e}")
+    # If no real image exists, ensure placeholder .jpg exists
+    if not os.path.exists(placeholder_path) or os.path.getsize(placeholder_path) <= 200:
+        try:
+            # Minimal valid 1x1 JPEG bytes
+            jpg_bytes = base64.b64decode(
+                b'/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='
+            )
+            with open(placeholder_path, 'wb') as pf:
+                pf.write(jpg_bytes)
+            print(f"📁 Created placeholder image file: {placeholder_path}")
+        except Exception as e:
+            print(f"⚠️ Could not create placeholder file for {case_id}: {e}")
 
-    img_path = f"{relative_prefix}/caseImages/{placeholder_fn}"
-    html = f'<div class="case-image-container"><img src="{img_path}" alt="Case Image" class="case-image" onerror="this.onerror=null; this.parentElement.outerHTML=\'<div class=\\\'case-image-container placeholder\\\'><div class=\\\'case-image-placeholder\\\'><span class=\\\'placeholder-icon\\\'>⚖️</span><span class=\\\'placeholder-text\\\'>No image available</span></div></div>\';"></div>'
-    return {"image": f"caseImages/{placeholder_fn}", "html": html}
+    placeholder_html = (
+        '<div class="case-image-container placeholder">'
+        '<div class="case-image-placeholder">'
+        '<span class="placeholder-icon">⚖️</span>'
+        '<span class="placeholder-text">No image available</span>'
+        '</div>'
+        '</div>'
+    )
+    return {"image": "", "html": placeholder_html}
 
 def generate_case_files():
     os.makedirs("cases", exist_ok=True)
